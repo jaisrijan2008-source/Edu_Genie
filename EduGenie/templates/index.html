@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <title>EduGenie - AI Learning Assistant</title>
+
+    <link rel="stylesheet" href="/static/style.css">
+</head>
+
+<body>
+
+<div class="container">
+
+    <div class="header">
+        <h1>EduGenie</h1>
+        <p>Google Gemini Powered Learning Assistant</p>
+    </div>
+
+    <div class="card">
+
+        <label for="task">Choose a learning task</label>
+
+        <select id="task">
+            <option value="qa">Ask a Question</option>
+            <option value="explain">Explain a Concept</option>
+            <option value="quiz">Generate Quiz</option>
+            <option value="summarize">Summarize</option>
+            <option value="learn">Learning Recommendations</option>
+        </select>
+
+        <label for="inputText">Enter your content</label>
+
+        <textarea
+            id="inputText"
+            placeholder="Enter your question, topic, or content here..."
+        ></textarea>
+
+        <button onclick="submitTask()">Submit</button>
+
+        <div id="result" class="hidden"></div>
+
+    </div>
+
+</div>
+
+<script>
+
+async function submitTask() {
+
+    const task = document.getElementById("task").value;
+    const input = document.getElementById("inputText").value.trim();
+    const resultBox = document.getElementById("result");
+
+    if (!input) {
+        resultBox.classList.remove("hidden");
+        resultBox.textContent = "Please enter some content.";
+        return;
+    }
+
+    resultBox.classList.remove("hidden");
+    resultBox.textContent = "EduGenie is thinking...";
+
+    let endpoint;
+    let fieldName;
+
+    if (task === "qa") {
+        endpoint = "/qa";
+        fieldName = "question";
+    } else if (task === "explain") {
+        endpoint = "/explain";
+        fieldName = "concept";
+    } else if (task === "quiz") {
+        endpoint = "/quiz";
+        fieldName = "topic";
+    } else if (task === "summarize") {
+        endpoint = "/summarize";
+        fieldName = "content";
+    } else {
+        endpoint = "/learn/recommendations";
+        fieldName = "topic";
+    }
+
+    const formData = new FormData();
+    formData.append(fieldName, input);
+
+    try {
+
+        const response = await fetch(endpoint, {
+            method: "POST",
+            body: formData
+        });
+
+        const data = await response.json();
+
+        if (!data.success) {
+            resultBox.textContent = "Error: " + data.error;
+            return;
+        }
+
+        if (task === "quiz") {
+            displayQuiz(data.result);
+        } else {
+
+            if (typeof data.result === "string") {
+                resultBox.textContent = data.result;
+            } else {
+                resultBox.textContent =
+                    JSON.stringify(data.result, null, 2);
+            }
+
+        }
+
+    } catch (error) {
+
+        resultBox.textContent =
+            "Could not connect to the server: " + error.message;
+
+    }
+}
+
+
+function displayQuiz(quiz) {
+
+    const resultBox = document.getElementById("result");
+
+    resultBox.innerHTML = "";
+
+    quiz.forEach((item, index) => {
+
+        const questionDiv = document.createElement("div");
+        questionDiv.className = "quiz-question";
+
+        const title = document.createElement("h3");
+        title.textContent =
+            `${index + 1}. ${item.question}`;
+
+        questionDiv.appendChild(title);
+
+        item.options.forEach((option, optionIndex) => {
+
+            const option = document.createElement("div");
+            option.className = "quiz-option";
+
+            const letter =
+                String.fromCharCode(65 + optionIndex);
+
+            option.textContent =
+                `${letter}. ${option}`;
+
+            questionDiv.appendChild(option);
+        });
+
+        resultBox.appendChild(questionDiv);
+    });
+}
+
+</script>
+
+</body>
+</html>
